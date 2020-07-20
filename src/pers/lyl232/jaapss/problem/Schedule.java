@@ -210,7 +210,7 @@ public class Schedule {
         });
 
         // 已经完成的任务, 用于判断依赖
-        HashSet<Integer> finishedTask = new HashSet<>();
+        HashMap<Integer, Double> finishedTask = new HashMap<>();
         // 每个机器分配到的任务信息
         Map<Integer, List<Assignment>> machineAssignments = new HashMap<>();
 
@@ -224,7 +224,8 @@ public class Schedule {
                 return false;
             }
             for (Task preTask : task.preTasks) {
-                if (!finishedTask.contains(preTask.id)) {
+                Double finishTime = finishedTask.get(preTask.id);
+                if (finishTime == null || finishTime - assignment.getBeginAt() > 1e-5) {
                     error = String.format("Task-%d is assigned with unfinished " +
                             "preTask-%d", task.id, preTask.id);
                     isValid = 0;
@@ -234,14 +235,14 @@ public class Schedule {
 
             if (problem.virtualMachineGroups.contains(task.machineGroupId)) {
                 // 虚拟设备组的任务不必考虑机器是否冲突
-                finishedTask.add(task.id);
+                finishedTask.put(task.id, assignment.getEndAt());
                 continue;
             }
             if (!machineAssignments.containsKey(assignment.machine)) {
                 machineAssignments.put(assignment.machine, new ArrayList<>());
             }
             machineAssignments.get(assignment.machine).add(assignment);
-            finishedTask.add(task.id);
+            finishedTask.put(task.id, assignment.getEndAt());
         }
 
         // 判断每台机器是否有冲突分配
